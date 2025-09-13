@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package alpes.tracking.v1;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// =====================================================
+// COMANDOS (Commands) - Tracking Context
+// =====================================================
+
+message RegisterClickCommand {
+  string command_id = 1;                    // UUID único del comando
+  string click_id = 2;                      // UUID único del click
+  string campaign_id = 3;                   // ID de la campaña
+  string partner_id = 4;                    // ID del partner/afiliado
+  string session_id = 5;                    // ID de sesión del usuario
+  google.protobuf.Timestamp timestamp = 6; // Cuándo ocurrió el click
+  string user_agent = 7;                    // User agent del navegador
+  string ip_address = 8;                    // IP del usuario (para geo-targeting)
+  string referrer = 9;                      // URL de referencia
+  string landing_url = 10;                  // URL de destino
+  map<string, string> metadata = 11;       // Metadatos adicionales (UTM params, etc)
+  alpes.common.v1.Meta meta = 12;          // Metadatos comunes
+}
+
+message RegisterImpressionCommand {
+  string command_id = 1;
+  string impression_id = 2;
+  string campaign_id = 3;
+  string partner_id = 4;
+  string session_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  string ad_creative_id = 7;                // ID del creative/banner
+  string placement_id = 8;                  // Dónde se mostró el ad
+  int32 view_duration_ms = 9;               // Duración de visualización
+  map<string, string> metadata = 10;
+  alpes.common.v1.Meta meta = 11;
+}
+
+message RegisterConversionCommand {
+  string command_id = 1;
+  string conversion_id = 2;
+  string click_id = 3;                      // Click que generó la conversión (puede ser null)
+  string campaign_id = 4;
+  string partner_id = 5;
+  string session_id = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  string conversion_type = 8;               // PURCHASE, SIGNUP, DOWNLOAD, etc
+  alpes.common.v1.Money value = 9;         // Valor de la conversión
+  string order_id = 10;                     // ID de la orden (si aplica)
+  map<string, string> metadata = 11;
+  alpes.common.v1.Meta meta = 12;
+}
+
+// =====================================================
+// EVENTOS (Events) - Tracking Context
+// =====================================================
+
+message ClickRegisteredEvent {
+  string event_id = 1;
+  string click_id = 2;
+  string campaign_id = 3;
+  string partner_id = 4;
+  string session_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  string user_agent = 7;
+  string ip_address = 8;
+  string referrer = 9;
+  string landing_url = 10;
+  map<string, string> metadata = 11;
+  alpes.common.v1.Meta meta = 12;
+}
+
+message ImpressionRegisteredEvent {
+  string event_id = 1;
+  string impression_id = 2;
+  string campaign_id = 3;
+  string partner_id = 4;
+  string session_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  string ad_creative_id = 7;
+  string placement_id = 8;
+  int32 view_duration_ms = 9;
+  map<string, string> metadata = 10;
+  alpes.common.v1.Meta meta = 11;
+}
+
+message ConversionRegisteredEvent {
+  string event_id = 1;
+  string conversion_id = 2;
+  string click_id = 3;
+  string campaign_id = 4;
+  string partner_id = 5;
+  string session_id = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  string conversion_type = 8;
+  alpes.common.v1.Money value = 9;
+  string order_id = 10;
+  map<string, string> metadata = 11;
+  alpes.common.v1.Meta meta = 12;
+}
+
+message ConversionAttributedEvent {
+  string event_id = 1;
+  string conversion_id = 2;
+  string attributed_click_id = 3;           // Click al que se atribuye la conversión
+  string campaign_id = 4;
+  string partner_id = 5;
+  google.protobuf.Timestamp conversion_timestamp = 6;
+  google.protobuf.Timestamp click_timestamp = 7;
+  int64 attribution_window_hours = 8;       // Ventana de atribución usada
+  string attribution_model = 9;             // LAST_CLICK, FIRST_CLICK, LINEAR, etc
+  alpes.common.v1.Money attributed_value = 10;
+  double commission_rate = 11;              // Tasa de comisión aplicada
+  alpes.common.v1.Money commission_amount = 12;
+  map<string, string> attribution_metadata = 13;
+  alpes.common.v1.Meta meta = 14;
+}
+
+message AttributionRecalculatedEvent {
+  string event_id = 1;
+  string conversion_id = 2;
+  string old_attributed_click_id = 3;       // Click previo
+  string new_attributed_click_id = 4;       // Nuevo click atribuido
+  string campaign_id = 5;
+  string partner_id = 6;
+  string recalculation_reason = 7;          // RULE_CHANGE, DATA_CORRECTION, etc
+  google.protobuf.Timestamp recalculated_at = 8;
+  alpes.common.v1.Money old_commission = 9;
+  alpes.common.v1.Money new_commission = 10;
+  alpes.common.v1.Meta meta = 11;
+}
+
+// =====================================================
+// VALUE OBJECTS específicos del contexto Tracking
+// =====================================================
+
+message ClickData {
+  string click_id = 1;
+  string campaign_id = 2;
+  string partner_id = 3;
+  string session_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  string user_agent = 6;
+  string ip_address = 7;
+  string referrer = 8;
+  string landing_url = 9;
+  map<string, string> metadata = 10;
+}
+
+message ConversionData {
+  string conversion_id = 1;
+  string conversion_type = 2;
+  alpes.common.v1.Money value = 3;
+  string order_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  map<string, string> metadata = 6;
+}
+
+// Enums específicos del contexto
+enum ConversionType {
+  CONVERSION_TYPE_UNSPECIFIED = 0;
+  PURCHASE = 1;
+  SIGNUP = 2;
+  DOWNLOAD = 3;
+  SUBSCRIPTION = 4;
+  LEAD = 5;
+  CUSTOM = 6;
+}
+
+enum AttributionModel {
+  ATTRIBUTION_MODEL_UNSPECIFIED = 0;
+  LAST_CLICK = 1;
+  FIRST_CLICK = 2;
+  LINEAR = 3;
+  TIME_DECAY = 4;
+  POSITION_BASED = 5;
+}

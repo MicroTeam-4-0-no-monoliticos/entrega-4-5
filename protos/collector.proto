@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package alpes.collector.v1;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// =====================================================
+// MENSAJES específicos para Event Collector / BFF
+// =====================================================
+
+// Request/Response para el BFF (HTTP → Protobuf)
+message CollectClickRequest {
+  string click_id = 1;                      // Opcional: si no se provee, se genera
+  string campaign_id = 2;                   // Requerido
+  string partner_id = 3;                    // Requerido
+  string session_id = 4;                    // Opcional: se puede generar
+  string user_agent = 5;
+  string ip_address = 6;                    // Se puede extraer del request HTTP
+  string referrer = 7;
+  string landing_url = 8;
+  map<string, string> utm_params = 9;       // UTM parameters
+  map<string, string> custom_params = 10;  // Parámetros personalizados
+}
+
+message CollectClickResponse {
+  string click_id = 1;                      // ID generado/confirmado
+  string status = 2;                        // SUCCESS, ERROR, RATE_LIMITED
+  string message = 3;                       // Mensaje descriptivo
+  google.protobuf.Timestamp processed_at = 4;
+}
+
+message CollectImpressionRequest {
+  string impression_id = 1;                 // Opcional
+  string campaign_id = 2;                   // Requerido
+  string partner_id = 3;                    // Requerido
+  string session_id = 4;
+  string ad_creative_id = 5;
+  string placement_id = 6;
+  int32 view_duration_ms = 7;
+  string user_agent = 8;
+  string ip_address = 9;
+  map<string, string> custom_params = 10;
+}
+
+message CollectImpressionResponse {
+  string impression_id = 1;
+  string status = 2;
+  string message = 3;
+  google.protobuf.Timestamp processed_at = 4;
+}
+
+message CollectConversionRequest {
+  string conversion_id = 1;                 // Opcional
+  string click_id = 2;                      // Opcional: puede no estar presente
+  string campaign_id = 3;                   // Requerido
+  string partner_id = 4;                    // Requerido
+  string session_id = 5;
+  string conversion_type = 6;               // PURCHASE, SIGNUP, etc
+  alpes.common.v1.Money value = 7;         // Valor de la conversión
+  string order_id = 8;                      // ID de la orden (opcional)
+  string customer_id = 9;                   // ID del customer (opcional)
+  map<string, string> conversion_data = 10; // Datos adicionales de la conversión
+}
+
+message CollectConversionResponse {
+  string conversion_id = 1;
+  string status = 2;
+  string message = 3;
+  google.protobuf.Timestamp processed_at = 4;
+  string attributed_click_id = 5;           // Si ya se puede determinar
+}
+
+// =====================================================
+// COMANDOS DE BATCH para procesamiento masivo
+// =====================================================
+
+message BatchCollectCommand {
+  string batch_id = 1;
+  string batch_type = 2;                    // CLICKS, IMPRESSIONS, CONVERSIONS
+  repeated CollectClickRequest clicks = 3;
+  repeated CollectImpressionRequest impressions = 4;
+  repeated CollectConversionRequest conversions = 5;
+  string submitted_by = 6;                  // API key o user ID
+  google.protobuf.Timestamp submitted_at = 7;
+  map<string, string> batch_metadata = 8;
+  alpes.common.v1.Meta meta = 9;
+}
+
+message BatchProcessedEvent {
+  string event_id = 1;
+  string batch_id = 2;
+  string batch_type = 3;
+  int32 total_items = 4;
+  int32 processed_items = 5;
+  int32 failed_items = 6;
+  repeated BatchError errors = 7;
+  google.protobuf.Timestamp processed_at = 8;
+  google.protobuf.Timestamp started_at = 9;
+  int64 processing_time_ms = 10;
+  alpes.common.v1.Meta meta = 11;
+}
+
+message BatchError {
+  int32 item_index = 1;                     // Índice del item que falló
+  string error_code = 2;                    // VALIDATION_ERROR, RATE_LIMIT, etc
+  string error_message = 3;
+  map<string, string> error_details = 4;
+}
+
+// =====================================================
+// HEALTH CHECK y métricas del Event Collector
+// =====================================================
+
+message HealthCheckRequest {
+  string service_name = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message HealthCheckResponse {
+  string service_name = 1;
+  HealthStatus status = 2;
+  string version = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  repeated HealthCheck checks = 5;
+  map<string, string> metadata = 6;
+}
+
+message HealthCheck {
+  string component = 1;                     // PULSAR, DATABASE, CACHE, etc
+  HealthStatus status = 2;
+  string message = 3;
+  google.protobuf.Timestamp last_check = 4;
+  int64 response_time_ms = 5;
+}
+
+message MetricsSnapshot {
+  string service_name = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  int64 clicks_processed = 3;
+  int64 impressions_processed = 4;
+  int64 conversions_processed = 5;
+  int64 errors_count = 6;
+  double average_processing_time_ms = 7;
+  double p95_processing_time_ms = 8;
+  double p99_processing_time_ms = 9;
+  int64 active_connections = 10;
+  int64 queue_depth = 11;                   // Profundidad de cola de Pulsar
+  map<string, double> custom_metrics = 12;
+}
+
+// =====================================================
+// ENUMS para Event Collector
+// =====================================================
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTHY = 1;
+  DEGRADED = 2;
+  UNHEALTHY = 3;
+  UNKNOWN = 4;
+}
+
+enum CollectionStatus {
+  COLLECTION_STATUS_UNSPECIFIED = 0;
+  ACCEPTED = 1;                             // Aceptado para procesamiento
+  PROCESSED = 2;                            // Procesado exitosamente
+  RATE_LIMITED = 3;                         // Rate limited
+  VALIDATION_ERROR = 4;                     // Error de validación
+  SYSTEM_ERROR = 5;                         // Error interno del sistema
+  DUPLICATE = 6;                            // Duplicado (ya procesado)
+}
+
+// =====================================================
+// CONFIGURACIÓN del Event Collector
+// =====================================================
+
+message CollectorConfig {
+  string service_name = 1;
+  string version = 2;
+  int32 rate_limit_per_second = 3;          // Rate limit global
+  int32 rate_limit_per_partner = 4;         // Rate limit por partner
+  int32 batch_size = 5;                     // Tamaño de batch para Pulsar
+  int32 batch_timeout_ms = 6;               // Timeout para formar batch
+  int32 max_payload_size_bytes = 7;         // Tamaño máximo de payload
+  bool enable_deduplication = 8;            // Habilitar deduplicación
+  int32 deduplication_window_minutes = 9;   // Ventana de deduplicación
+  repeated string allowed_origins = 10;     // CORS origins permitidos
+  repeated string blocked_ips = 11;         // IPs bloqueadas
+  map<string, string> pulsar_topics = 12;  // Mapeo de topics
+}

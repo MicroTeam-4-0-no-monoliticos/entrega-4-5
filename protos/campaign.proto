@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package alpes.campaign.v1;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// =====================================================
+// COMANDOS (Commands) - Campaign Context
+// =====================================================
+
+message CreateCampaignCommand {
+  string command_id = 1;
+  string campaign_id = 2;
+  string name = 3;
+  string description = 4;
+  string brand_id = 5;                      // ID de la marca/anunciante
+  string owner_id = 6;                      // ID del usuario creador
+  CampaignType campaign_type = 7;           // CPC, CPA, CPM, etc
+  alpes.common.v1.Money budget = 8;        // Presupuesto total
+  alpes.common.v1.Money daily_budget = 9;  // Presupuesto diario
+  google.protobuf.Timestamp start_date = 10;
+  google.protobuf.Timestamp end_date = 11;
+  CampaignRules rules = 12;                 // Reglas de la campaña
+  repeated string target_countries = 13;   // Países objetivo
+  repeated string target_categories = 14;  // Categorías objetivo
+  CampaignStatus status = 15;
+  map<string, string> metadata = 16;
+  alpes.common.v1.Meta meta = 17;
+}
+
+message UpdateCampaignCommand {
+  string command_id = 1;
+  string campaign_id = 2;
+  string name = 3;                          // opcional
+  string description = 4;                   // opcional
+  alpes.common.v1.Money budget = 5;        // opcional
+  alpes.common.v1.Money daily_budget = 6;  // opcional
+  google.protobuf.Timestamp start_date = 7; // opcional
+  google.protobuf.Timestamp end_date = 8;   // opcional
+  CampaignRules rules = 9;                  // opcional - rules-as-data
+  repeated string target_countries = 10;   // opcional
+  repeated string target_categories = 11;  // opcional
+  map<string, string> metadata = 12;
+  alpes.common.v1.Meta meta = 13;
+}
+
+message PublishCampaignCommand {
+  string command_id = 1;
+  string campaign_id = 2;
+  string publisher_id = 3;                  // Quien publica la campaña
+  google.protobuf.Timestamp publish_at = 4; // Cuándo publicar (puede ser futuro)
+  string approval_notes = 5;                // Notas de aprobación
+  alpes.common.v1.Meta meta = 6;
+}
+
+message DeactivateCampaignCommand {
+  string command_id = 1;
+  string campaign_id = 2;
+  string deactivated_by = 3;
+  string deactivation_reason = 4;          // BUDGET_EXHAUSTED, MANUAL, EXPIRED, etc
+  google.protobuf.Timestamp deactivated_at = 5;
+  alpes.common.v1.Meta meta = 6;
+}
+
+// =====================================================
+// EVENTOS (Events) - Campaign Context
+// =====================================================
+
+message CampaignCreatedEvent {
+  string event_id = 1;
+  string campaign_id = 2;
+  string name = 3;
+  string description = 4;
+  string brand_id = 5;
+  string owner_id = 6;
+  CampaignType campaign_type = 7;
+  alpes.common.v1.Money budget = 8;
+  alpes.common.v1.Money daily_budget = 9;
+  google.protobuf.Timestamp start_date = 10;
+  google.protobuf.Timestamp end_date = 11;
+  CampaignRules rules = 12;
+  repeated string target_countries = 13;
+  repeated string target_categories = 14;
+  CampaignStatus status = 15;
+  map<string, string> metadata = 16;
+  google.protobuf.Timestamp created_at = 17;
+  alpes.common.v1.Meta meta = 18;
+}
+
+message CampaignUpdatedEvent {
+  string event_id = 1;
+  string campaign_id = 2;
+  repeated string updated_fields = 3;       // Lista de campos que cambiaron
+  CampaignData old_data = 4;                // Estado anterior (para audit)
+  CampaignData new_data = 5;                // Nuevo estado
+  string updated_by = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message CampaignPublishedEvent {
+  string event_id = 1;
+  string campaign_id = 2;
+  string publisher_id = 3;
+  google.protobuf.Timestamp published_at = 4;
+  string approval_notes = 5;
+  CampaignStatus previous_status = 6;
+  alpes.common.v1.Meta meta = 7;
+}
+
+message CampaignDeactivatedEvent {
+  string event_id = 1;
+  string campaign_id = 2;
+  string deactivated_by = 3;
+  string deactivation_reason = 4;
+  google.protobuf.Timestamp deactivated_at = 5;
+  CampaignStatus previous_status = 6;
+  alpes.common.v1.Money remaining_budget = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message CampaignBudgetExhaustedEvent {
+  string event_id = 1;
+  string campaign_id = 2;
+  alpes.common.v1.Money total_budget = 3;
+  alpes.common.v1.Money spent_amount = 4;
+  google.protobuf.Timestamp exhausted_at = 5;
+  bool auto_deactivated = 6;               // Si se desactivó automáticamente
+  alpes.common.v1.Meta meta = 7;
+}
+
+// =====================================================
+// VALUE OBJECTS específicos del contexto Campaign
+// =====================================================
+
+message CampaignRules {
+  int64 attribution_window_hours = 1;      // Ventana de atribución (ej: 72h)
+  double commission_rate = 2;               // Tasa de comisión (0.0 - 1.0)
+  alpes.common.v1.Money max_commission_per_conversion = 3; // Tope de comisión
+  alpes.common.v1.Money min_conversion_value = 4; // Valor mínimo para pagar comisión
+  repeated string excluded_partners = 5;   // Partners excluidos
+  repeated string allowed_traffic_sources = 6; // Fuentes de tráfico permitidas
+  bool allow_incentivized_traffic = 7;     // Permitir tráfico incentivado
+  int32 max_clicks_per_ip_per_hour = 8;   // Anti-fraude: límite clicks por IP
+  int32 cookie_lifetime_days = 9;         // Duración del cookie de tracking
+  string rules_json = 10;                 // Rules-as-data: JSON/DSL adicional
+}
+
+message CampaignData {
+  string campaign_id = 1;
+  string name = 2;
+  string description = 3;
+  string brand_id = 4;
+  string owner_id = 5;
+  CampaignType campaign_type = 6;
+  alpes.common.v1.Money budget = 7;
+  alpes.common.v1.Money daily_budget = 8;
+  google.protobuf.Timestamp start_date = 9;
+  google.protobuf.Timestamp end_date = 10;
+  CampaignRules rules = 11;
+  repeated string target_countries = 12;
+  repeated string target_categories = 13;
+  CampaignStatus status = 14;
+  map<string, string> metadata = 15;
+}
+
+message Offer {
+  string offer_id = 1;
+  string campaign_id = 2;
+  string title = 3;
+  string description = 4;
+  string creative_url = 5;                 // URL del creative/banner
+  string landing_page_url = 6;
+  OfferType offer_type = 7;
+  alpes.common.v1.Money payout = 8;       // Lo que paga al partner
+  repeated string allowed_methods = 9;     // EMAIL, SOCIAL, SEARCH, etc
+  map<string, string> tracking_params = 10; // Parámetros de tracking adicionales
+}
+
+// =====================================================
+// ENUMS específicos del contexto Campaign
+// =====================================================
+
+enum CampaignType {
+  CAMPAIGN_TYPE_UNSPECIFIED = 0;
+  CPC = 1;    // Cost Per Click
+  CPA = 2;    // Cost Per Acquisition
+  CPM = 3;    // Cost Per Mille (1000 impressions)
+  CPS = 4;    // Cost Per Sale
+  CPL = 5;    // Cost Per Lead
+  HYBRID = 6; // Combinación de modelos
+}
+
+enum CampaignStatus {
+  CAMPAIGN_STATUS_UNSPECIFIED = 0;
+  DRAFT = 1;
+  PENDING_APPROVAL = 2;
+  APPROVED = 3;
+  ACTIVE = 4;
+  PAUSED = 5;
+  COMPLETED = 6;
+  CANCELLED = 7;
+  REJECTED = 8;
+}
+
+enum OfferType {
+  OFFER_TYPE_UNSPECIFIED = 0;
+  PRODUCT_PROMOTION = 1;
+  SERVICE_SIGNUP = 2;
+  APP_DOWNLOAD = 3;
+  NEWSLETTER_SIGNUP = 4;
+  WEBINAR_REGISTRATION = 5;
+  FREE_TRIAL = 6;
+  CUSTOM = 7;
+}

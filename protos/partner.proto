@@ -1,0 +1,315 @@
+syntax = "proto3";
+
+package alpes.partner.v1;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// =====================================================
+// COMANDOS (Commands) - Partner Context
+// =====================================================
+
+message RegisterPartnerCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  string business_name = 3;
+  string legal_name = 4;                    // Razón social
+  string tax_id = 5;                        // NIT/RFC/Tax ID
+  PartnerType partner_type = 6;             // INDIVIDUAL, COMPANY, AGENCY
+  alpes.common.v1.Contact primary_contact = 7;
+  alpes.common.v1.Address business_address = 8;
+  string website_url = 9;
+  repeated string marketing_channels = 10;   // EMAIL, SOCIAL, SEARCH, BLOG, etc
+  BusinessProfile business_profile = 11;
+  BankingInfo banking_info = 12;
+  repeated string requested_categories = 13; // Categorías de productos/servicios
+  map<string, string> metadata = 14;
+  alpes.common.v1.Meta meta = 15;
+}
+
+message UpdatePartnerCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  string business_name = 3;                 // opcional
+  alpes.common.v1.Contact primary_contact = 4; // opcional
+  alpes.common.v1.Address business_address = 5; // opcional
+  string website_url = 6;                   // opcional
+  repeated string marketing_channels = 7;   // opcional
+  BusinessProfile business_profile = 8;     // opcional
+  BankingInfo banking_info = 9;             // opcional
+  map<string, string> metadata = 10;
+  alpes.common.v1.Meta meta = 11;
+}
+
+message SubmitKYCCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  repeated KYCDocument documents = 3;
+  string submission_method = 4;             // ONLINE, EMAIL, PHYSICAL
+  string submitted_by = 5;                  // ID del usuario que envió
+  map<string, string> additional_info = 6; // Información adicional requerida
+  alpes.common.v1.Meta meta = 7;
+}
+
+message ReviewKYCCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  string reviewer_id = 3;                   // ID del reviewer
+  KYCStatus kyc_decision = 4;               // APPROVED, REJECTED, NEEDS_MORE_INFO
+  string review_notes = 5;                  // Notas del reviewer
+  repeated string required_additional_docs = 6; // Si necesita más documentos
+  google.protobuf.Timestamp review_date = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message ActivatePartnerCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  string activated_by = 3;                  // ID de quien activa
+  repeated string approved_categories = 4;  // Categorías aprobadas
+  PartnerTier partner_tier = 5;             // BRONZE, SILVER, GOLD, PLATINUM
+  CommissionStructure commission_structure = 6; // Estructura de comisiones
+  google.protobuf.Timestamp activation_date = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message SuspendPartnerCommand {
+  string command_id = 1;
+  string partner_id = 2;
+  string suspended_by = 3;
+  string suspension_reason = 4;             // FRAUD, POLICY_VIOLATION, FINANCIAL, etc
+  google.protobuf.Timestamp suspension_date = 5;
+  google.protobuf.Timestamp suspension_until = 6; // null = indefinido
+  bool allow_existing_conversions = 7;      // Si procesa conversions pendientes
+  alpes.common.v1.Meta meta = 8;
+}
+
+// =====================================================
+// EVENTOS (Events) - Partner Context
+// =====================================================
+
+message PartnerRegisteredEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  string business_name = 3;
+  string legal_name = 4;
+  string tax_id = 5;
+  PartnerType partner_type = 6;
+  alpes.common.v1.Contact primary_contact = 7;
+  alpes.common.v1.Address business_address = 8;
+  string website_url = 9;
+  repeated string marketing_channels = 10;
+  BusinessProfile business_profile = 11;
+  repeated string requested_categories = 12;
+  PartnerStatus status = 13;
+  google.protobuf.Timestamp registered_at = 14;
+  alpes.common.v1.Meta meta = 15;
+}
+
+message PartnerUpdatedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  repeated string updated_fields = 3;       // Campos que cambiaron
+  PartnerData old_data = 4;                 // Estado anterior
+  PartnerData new_data = 5;                 // Nuevo estado
+  string updated_by = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message KYCSubmittedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  repeated KYCDocument documents = 3;
+  string submission_method = 4;
+  string submitted_by = 5;
+  google.protobuf.Timestamp submitted_at = 6;
+  PartnerStatus previous_status = 7;
+  alpes.common.v1.Meta meta = 8;
+}
+
+message KYCVerifiedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  string reviewer_id = 3;
+  KYCStatus kyc_decision = 4;
+  string review_notes = 5;
+  repeated string required_additional_docs = 6;
+  google.protobuf.Timestamp reviewed_at = 7;
+  PartnerStatus previous_status = 8;
+  PartnerStatus new_status = 9;
+  alpes.common.v1.Meta meta = 10;
+}
+
+message PartnerActivatedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  string activated_by = 3;
+  repeated string approved_categories = 4;
+  PartnerTier partner_tier = 5;
+  CommissionStructure commission_structure = 6;
+  google.protobuf.Timestamp activated_at = 7;
+  PartnerStatus previous_status = 8;
+  alpes.common.v1.Meta meta = 9;
+}
+
+message PartnerSuspendedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  string suspended_by = 3;
+  string suspension_reason = 4;
+  google.protobuf.Timestamp suspended_at = 5;
+  google.protobuf.Timestamp suspension_until = 6;
+  bool allow_existing_conversions = 7;
+  PartnerStatus previous_status = 8;
+  alpes.common.v1.Meta meta = 9;
+}
+
+message PartnerReactivatedEvent {
+  string event_id = 1;
+  string partner_id = 2;
+  string reactivated_by = 3;
+  string reactivation_reason = 4;
+  google.protobuf.Timestamp reactivated_at = 5;
+  PartnerStatus previous_status = 6;
+  alpes.common.v1.Meta meta = 7;
+}
+
+// =====================================================
+// VALUE OBJECTS específicos del contexto Partner
+// =====================================================
+
+message BusinessProfile {
+  string industry = 1;                      // Industria/sector
+  int32 years_in_business = 2;              // Años en el negocio
+  alpes.common.v1.Money monthly_revenue = 3; // Revenue mensual estimado
+  int32 employees_count = 4;                // Número de empleados
+  repeated string certifications = 5;       // Certificaciones profesionales
+  repeated string previous_networks = 6;    // Redes de afiliados previas
+  string business_model = 7;                // Modelo de negocio
+  repeated string target_audience = 8;      // Audiencia objetivo
+  string traffic_volume = 9;                // Volumen de tráfico estimado
+}
+
+message KYCDocument {
+  string document_id = 1;
+  string document_type = 2;                 // ID_CARD, PASSPORT, BUSINESS_LICENSE, etc
+  string document_number = 3;               // Número del documento
+  string file_url = 4;                      // URL del archivo subido
+  string file_hash = 5;                     // Hash del archivo para integridad
+  google.protobuf.Timestamp issued_date = 6;
+  google.protobuf.Timestamp expiry_date = 7;
+  string issuing_authority = 8;             // Autoridad que emitió
+  KYCDocumentStatus status = 9;
+  map<string, string> extracted_data = 10; // Datos extraídos (OCR, etc)
+}
+
+message BankingInfo {
+  string bank_name = 1;
+  string account_number = 2;                // Encriptado/Hasheado
+  string routing_number = 3;                // Código de routing/SWIFT
+  string account_type = 4;                  // CHECKING, SAVINGS, BUSINESS
+  string account_holder_name = 5;
+  alpes.common.v1.Address bank_address = 6;
+  bool verified = 7;                        // Si está verificada
+  google.protobuf.Timestamp verified_at = 8;
+}
+
+message CommissionStructure {
+  string structure_id = 1;
+  CommissionType commission_type = 2;       // PERCENTAGE, FIXED, TIERED
+  double base_rate = 3;                     // Tasa base (0.0 - 1.0 para %)
+  alpes.common.v1.Money fixed_amount = 4;  // Para comisión fija
+  repeated CommissionTier tiers = 5;        // Para comisión por niveles
+  alpes.common.v1.Money minimum_payout = 6; // Pago mínimo
+  int32 payment_terms_days = 7;             // Días para pagar (ej: 30)
+  repeated string bonus_categories = 8;     // Categorías con bonus
+}
+
+message CommissionTier {
+  alpes.common.v1.Money min_volume = 1;    // Volumen mínimo para este tier
+  alpes.common.v1.Money max_volume = 2;    // Volumen máximo (null = sin límite)
+  double rate = 3;                          // Tasa para este tier
+  alpes.common.v1.Money bonus_amount = 4;  // Bonus adicional por alcanzar tier
+}
+
+message PartnerData {
+  string partner_id = 1;
+  string business_name = 2;
+  string legal_name = 3;
+  string tax_id = 4;
+  PartnerType partner_type = 5;
+  alpes.common.v1.Contact primary_contact = 6;
+  alpes.common.v1.Address business_address = 7;
+  string website_url = 8;
+  repeated string marketing_channels = 9;
+  BusinessProfile business_profile = 10;
+  BankingInfo banking_info = 11;
+  PartnerStatus status = 12;
+  KYCStatus kyc_status = 13;
+  PartnerTier partner_tier = 14;
+  CommissionStructure commission_structure = 15;
+  repeated string approved_categories = 16;
+}
+
+// =====================================================
+// ENUMS específicos del contexto Partner
+// =====================================================
+
+enum PartnerType {
+  PARTNER_TYPE_UNSPECIFIED = 0;
+  INDIVIDUAL = 1;           // Persona natural
+  COMPANY = 2;              // Empresa
+  AGENCY = 3;               // Agencia de marketing
+  INFLUENCER = 4;           // Influencer/Creator
+  PUBLISHER = 5;            // Publisher/Media
+}
+
+enum PartnerStatus {
+  PARTNER_STATUS_UNSPECIFIED = 0;
+  REGISTERED = 1;           // Registrado, pendiente KYC
+  KYC_PENDING = 2;          // KYC enviado, pendiente revisión
+  KYC_REJECTED = 3;         // KYC rechazado
+  APPROVED = 4;             // KYC aprobado, pendiente activación
+  ACTIVE = 5;               // Activo y operando
+  SUSPENDED = 6;            // Suspendido temporalmente
+  TERMINATED = 7;           // Terminado permanentemente
+  INACTIVE = 8;             // Inactivo (por inactividad)
+}
+
+enum KYCStatus {
+  KYC_STATUS_UNSPECIFIED = 0;
+  NOT_SUBMITTED = 1;
+  SUBMITTED = 2;
+  IN_REVIEW = 3;
+  APPROVED = 4;
+  REJECTED = 5;
+  NEEDS_MORE_INFO = 6;
+  EXPIRED = 7;
+}
+
+enum KYCDocumentStatus {
+  KYC_DOCUMENT_STATUS_UNSPECIFIED = 0;
+  UPLOADED = 1;
+  PROCESSING = 2;
+  VERIFIED = 3;
+  REJECTED = 4;
+  EXPIRED = 5;
+}
+
+enum PartnerTier {
+  PARTNER_TIER_UNSPECIFIED = 0;
+  BRONZE = 1;
+  SILVER = 2;
+  GOLD = 3;
+  PLATINUM = 4;
+  DIAMOND = 5;
+}
+
+enum CommissionType {
+  COMMISSION_TYPE_UNSPECIFIED = 0;
+  PERCENTAGE = 1;           // Porcentaje del valor de conversión
+  FIXED = 2;                // Cantidad fija por conversión
+  TIERED = 3;               // Por niveles de volumen
+  HYBRID = 4;               // Combinación de modelos
+}

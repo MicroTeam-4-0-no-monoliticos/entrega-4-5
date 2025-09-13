@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package alpes.common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Metadatos comunes para todos los mensajes
+message Meta {
+  string event_id = 1;              // UUID único del evento/comando
+  string producer = 2;              // Servicio que produce el mensaje
+  string schema_version = 3;        // Versión del esquema (ej: "1.0")
+  google.protobuf.Timestamp timestamp = 4;  // Timestamp del mensaje
+  string correlation_id = 5;        // Para tracing distribuido
+  string trace_id = 6;              // OpenTelemetry trace ID
+  string span_id = 7;               // OpenTelemetry span ID
+}
+
+// Envelope genérico para comandos
+message CommandEnvelope {
+  string command_type = 1;          // Tipo de comando (ej: "RegisterClickCommand")
+  string aggregate_id = 2;          // ID del agregado afectado
+  int32 expected_version = 3;       // Versión esperada (para optimistic locking)
+  Meta meta = 4;                    // Metadatos
+  bytes payload = 5;                // Payload serializado del comando específico
+}
+
+// Envelope genérico for eventos
+message EventEnvelope {
+  string event_type = 1;            // Tipo de evento (ej: "ClickRegisteredEvent")
+  string aggregate_id = 2;          // ID del agregado que generó el evento
+  int64 aggregate_version = 3;      // Versión del agregado después del evento
+  Meta meta = 4;                    // Metadatos
+  bytes payload = 5;                // Payload serializado del evento específico
+}
+
+// Value Objects comunes
+message Money {
+  string currency = 1;              // Código de moneda (USD, COP, EUR)
+  int64 amount_cents = 2;           // Cantidad en centavos (evita problemas de flotantes)
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+  string country = 4;
+  string postal_code = 5;
+}
+
+message Contact {
+  string email = 1;
+  string phone = 2;
+  string name = 3;
+}
+
+// Enums comunes
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+  PENDING = 3;
+  SUSPENDED = 4;
+  DELETED = 5;
+}
