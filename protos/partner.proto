@@ -269,7 +269,7 @@ enum PartnerStatus {
   PARTNER_STATUS_UNSPECIFIED = 0;
   REGISTERED = 1;           // Registrado, pendiente KYC
   KYC_PENDING = 2;          // KYC enviado, pendiente revisión
-  KYC_REJECTED = 3;         // KYC rechazado
+  PARTNER_KYC_REJECTED = 3; // KYC rechazado
   APPROVED = 4;             // KYC aprobado, pendiente activación
   ACTIVE = 5;               // Activo y operando
   SUSPENDED = 6;            // Suspendido temporalmente
@@ -282,19 +282,19 @@ enum KYCStatus {
   NOT_SUBMITTED = 1;
   SUBMITTED = 2;
   IN_REVIEW = 3;
-  APPROVED = 4;
-  REJECTED = 5;
+  KYC_APPROVED = 4;
+  KYC_REJECTED = 5;
   NEEDS_MORE_INFO = 6;
-  EXPIRED = 7;
+  KYC_EXPIRED = 7;
 }
 
 enum KYCDocumentStatus {
   KYC_DOCUMENT_STATUS_UNSPECIFIED = 0;
   UPLOADED = 1;
   PROCESSING = 2;
-  VERIFIED = 3;
-  REJECTED = 4;
-  EXPIRED = 5;
+  DOC_VERIFIED = 3;
+  DOC_REJECTED = 4;
+  DOC_EXPIRED = 5;
 }
 
 enum PartnerTier {

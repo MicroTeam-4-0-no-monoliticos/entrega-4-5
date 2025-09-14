@@ -1,0 +1,4 @@
+# Dependencias para usar los archivos Protobuf generados
+protobuf>=4.21.0
+grpcio>=1.50.0
+grpcio-tools>=1.50.0
